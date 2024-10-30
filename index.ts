@@ -1,6 +1,7 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { randomUUID } from 'node:crypto';
 import { httpServer } from './src/http_server/index';
+import { handleWebSocketMessage } from './src/routes/router';
 
 const HTTP_PORT = 8181;
 
@@ -15,12 +16,9 @@ wsServer.on('connection', (ws: WebSocket) => {
   console.log(`New client with id ${clientId} connected`);
 
   ws.on('message', (message: string) => {
-    const parseMessage = JSON.parse(message.toString());
-    const type = parseMessage.type;
-    const data = JSON.parse(parseMessage.data);
-    console.log(
-      `Message clientId ${clientId}: ${JSON.stringify(parseMessage)}`,
-    );
+    message = message.toString();
+    console.log(`Message clientId ${clientId}: ${JSON.stringify(message)}`);
+    handleWebSocketMessage(clientId, ws, message);
   });
 
   ws.on('error', (error: Error) => {
