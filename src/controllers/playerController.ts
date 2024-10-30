@@ -45,4 +45,19 @@ function registerPlayer(
   }
 }
 
-export { registerPlayer };
+function sendUpdateWinners(): void {
+  const winners = db.getWinners();
+  const players: Player[] = db.getAllPlayers();
+
+  players.forEach((player) => {
+    player.ws.send(
+      JSON.stringify({
+        type: 'update_winners',
+        data: JSON.stringify(winners),
+        id: 0,
+      }),
+    );
+  });
+}
+
+export { registerPlayer, sendUpdateWinners };

@@ -1,7 +1,10 @@
 import WebSocket from 'ws';
 import { IPlayer, Player } from 'src/models/Player';
 import { Room } from 'src/models/Room';
-import { registerPlayer } from '../controllers/playerController';
+import {
+  registerPlayer,
+  sendUpdateWinners,
+} from '../controllers/playerController';
 import { createRoom, updateRoom } from 'src/controllers/roomController';
 import { db } from 'src/db/database';
 
@@ -20,6 +23,7 @@ function handleWebSocketMessage(
       const password: string = data.password;
       registerPlayer(clientId, ws, name, password);
       updateRoom();
+      sendUpdateWinners();
       break;
     }
     case 'create_room':

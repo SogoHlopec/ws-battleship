@@ -4,6 +4,7 @@ import { Room } from '../models/Room';
 class Database {
   private players: Player[] = [];
   private rooms: Room[] = [];
+  private winners: { name: string; wins: number }[] = [];
 
   public addNewPlayer(newPlayer: IPlayer): boolean {
     this.players.push(newPlayer);
@@ -23,11 +24,7 @@ class Database {
 
   public getPlayerByIndex(index: string): Player | undefined {
     const player = this.players.find((item) => {
-      if (item.index === index) {
-        return item;
-      } else {
-        return null;
-      }
+      return item.index === index;
     });
     return player;
   }
@@ -47,6 +44,22 @@ class Database {
 
   public getAllRooms(): Room[] {
     return this.rooms;
+  }
+
+  public updateWinner(name: string): void {
+    const winner = this.winners.find((item) => {
+      return item.name === name;
+    });
+    
+    if (winner) {
+      winner.wins += 1;
+    } else {
+      this.winners.push({ name, wins: 1 });
+    }
+  }
+
+  public getWinners(): { name: string; wins: number }[] {
+    return this.winners;
   }
 }
 
