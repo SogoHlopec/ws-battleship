@@ -1,12 +1,16 @@
 import WebSocket from 'ws';
-import { IPlayer, Player } from 'src/models/Player';
-import { Room } from 'src/models/Room';
+import { IPlayer, Player } from '../models/Player';
+import { Room } from '../models/Room';
 import {
   registerPlayer,
   sendUpdateWinners,
 } from '../controllers/playerController';
-import { createRoom, updateRoom } from 'src/controllers/roomController';
-import { db } from 'src/db/database';
+import {
+  createRoom,
+  updateRoom,
+  addUserToRoom,
+} from '../controllers/roomController';
+import { db } from '../db/database';
 
 function handleWebSocketMessage(
   clientId: string,
@@ -15,6 +19,7 @@ function handleWebSocketMessage(
 ) {
   const parseMessage = JSON.parse(message.toString());
   const type = parseMessage.type;
+  const player: Player | undefined = db.getPlayerByIndex(clientId);
 
   switch (type) {
     case 'reg': {
@@ -27,10 +32,18 @@ function handleWebSocketMessage(
       break;
     }
     case 'create_room':
-      const player: Player | undefined = db.getPlayerByIndex(clientId);
       if (player) {
         createRoom(player);
         updateRoom();
+      }
+      break;
+
+    case 'add_user_to_room':
+      const data = JSON.parse(parseMessage.data);
+      const indexRoom = data.indexRoom;
+
+      if (player) {
+        addUserToRoom(player, indexRoom);
       }
       break;
     default:

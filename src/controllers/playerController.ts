@@ -58,6 +58,7 @@ function sendUpdateWinners(): void {
       }),
     );
   });
+  console.log(`Update winners successfully`);
 }
 
 export { registerPlayer, sendUpdateWinners };

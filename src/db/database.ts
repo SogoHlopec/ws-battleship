@@ -46,11 +46,15 @@ class Database {
     return this.rooms;
   }
 
+  public getRoomByIndex(index: number | string): Room | undefined {
+    return this.rooms.find((room) => room.roomId === index);
+  }
+
   public updateWinner(name: string): void {
     const winner = this.winners.find((item) => {
       return item.name === name;
     });
-    
+
     if (winner) {
       winner.wins += 1;
     } else {

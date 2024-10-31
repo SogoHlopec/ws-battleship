@@ -1,15 +1,15 @@
 import { Player } from './Player';
 
 interface IRoom {
-  roomId: string;
+  roomId: number | string;
   roomUsers: Player[];
 }
 
 class Room implements IRoom {
-  public roomId: string;
+  public roomId: number | string;
   public roomUsers: Player[];
 
-  constructor(roomId: string) {
+  constructor(roomId: number | string) {
     this.roomId = roomId;
     this.roomUsers = [];
   }
@@ -23,7 +23,13 @@ class Room implements IRoom {
   }
 
   public isFullRoom(): boolean {
-    return this.getLengthRoomUsers() > 1 ? true : false;
+    console.log(this.roomUsers);
+    console.log(this.getLengthRoomUsers());
+    return this.getLengthRoomUsers() >= 2 ? true : false;
+  }
+
+  public isExistPlayerInRoom(playerIndex: string): boolean {
+    return this.roomUsers.some((item) => item.index === playerIndex);
   }
 }
 

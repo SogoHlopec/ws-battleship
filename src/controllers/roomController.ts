@@ -4,7 +4,7 @@ import { db } from '../db/database';
 
 function createRoom(player: Player): Room {
   const lengthRooms = db.getLengthRooms();
-  const roomId = String(lengthRooms + 1);
+  const roomId = lengthRooms + 1;
   const newRoom = new Room(roomId);
 
   newRoom.addPlayer(player);
@@ -32,7 +32,33 @@ function updateRoom(): void {
       }),
     );
   });
-  console.log(`List rooms for game`);
+  console.log(`Update room successfully`);
 }
 
-export { createRoom, updateRoom };
+function addUserToRoom(
+  player: Player,
+  roomId: number | string,
+): boolean | void {
+  const room = db.getRoomByIndex(roomId);
+
+  if (!room) {
+    console.log(`Room with index ${roomId} not found.`);
+    return false;
+  }
+
+  if (room.isFullRoom()) {
+    console.log(`Room ${roomId} is already full.`);
+    return false;
+  }
+
+  if (room.isExistPlayerInRoom(player.index)) {
+    console.log(`Player ${player.name} is already in the room ${roomId}.`);
+    return false;
+  }
+
+  room.roomUsers.push(player);
+  console.log(`Player ${player.name} added to room ${roomId}`);
+  return true;
+}
+
+export { createRoom, updateRoom, addUserToRoom };
