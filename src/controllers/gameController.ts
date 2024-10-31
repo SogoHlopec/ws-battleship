@@ -36,7 +36,7 @@ function createGame(room: Room): void {
 }
 
 function addShipsToBoard(
-  gameId: string | number,
+  gameId: number | string,
   playerId: number | string,
   ships: IShip[],
 ): boolean {
@@ -63,4 +63,39 @@ function addShipsToBoard(
   }
   return true;
 }
-export { createGame, addShipsToBoard };
+
+function startGame(gameId: number | string): boolean {
+  const game = db.getGameById(gameId);
+
+  if (!game) {
+    console.log(`Game with ID ${gameId} not found.`);
+    return false;
+  }
+  
+  const hasTwoPlayersAddedShips = Object.values(game.ships).every(
+  (ships) => Array.isArray(ships) && ships.length > 0
+);
+
+  if (game.players.length === 2 && hasTwoPlayersAddedShips) {
+    game.players.forEach((item) => {
+      item.player.ws.send(
+        JSON.stringify({
+          type: 'start_game',
+          data: JSON.stringify({
+            currentPlayerIndex: item.idPlayer,
+            ships: game.ships[item.idPlayer],
+          }),
+          id: 0,
+        }),
+      );
+    });
+
+    console.log(`Start game ${gameId}.`);
+  } else {
+    console.log(`Not all players have sent ships in the game ${gameId}.`);
+    return false;
+  }
+  return true;
+}
+
+export { createGame, addShipsToBoard, startGame };
