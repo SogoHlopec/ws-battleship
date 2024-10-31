@@ -17,7 +17,7 @@ wsServer.on('connection', (ws: WebSocket) => {
 
   ws.on('message', (message: string) => {
     message = message.toString();
-    console.log(`Message clientId ${clientId}: ${JSON.stringify(message)}`);
+    console.log(`Message clientId ${clientId}: ${JSON.parse(message).type}`);
     handleWebSocketMessage(clientId, ws, message);
   });
 

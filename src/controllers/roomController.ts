@@ -1,5 +1,6 @@
 import { Player } from '../models/Player';
 import { Room } from '../models/Room';
+import { createGame } from './gameController';
 import { db } from '../db/database';
 
 function createRoom(player: Player): Room {
@@ -58,6 +59,12 @@ function addUserToRoom(
 
   room.roomUsers.push(player);
   console.log(`Player ${player.name} added to room ${roomId}`);
+
+  if (room.roomUsers.length === 2) {
+    updateRoom();
+    createGame(room);
+  }
+
   return true;
 }
 

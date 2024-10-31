@@ -1,10 +1,12 @@
 import { IPlayer, Player } from '../models/Player';
 import { Room } from '../models/Room';
+import { Game } from 'src/models/Game';
 
 class Database {
   private players: Player[] = [];
   private rooms: Room[] = [];
   private winners: { name: string; wins: number }[] = [];
+  private games: Game[] = [];
 
   public addNewPlayer(newPlayer: IPlayer): boolean {
     this.players.push(newPlayer);
@@ -12,9 +14,7 @@ class Database {
   }
 
   public isValidatePlayer(name: string): boolean {
-    const existingPlayer = this.players.find((player) => {
-      return player.name === name;
-    });
+    const existingPlayer = this.players.find((player) => player.name === name);
     if (existingPlayer) {
       return false;
     } else {
@@ -22,11 +22,8 @@ class Database {
     }
   }
 
-  public getPlayerByIndex(index: string): Player | undefined {
-    const player = this.players.find((item) => {
-      return item.index === index;
-    });
-    return player;
+  public getPlayerByIndex(index: string): IPlayer | undefined {
+    return this.players.find((item) => item.index === index);
   }
 
   public getAllPlayers(): Player[] {
@@ -51,10 +48,7 @@ class Database {
   }
 
   public updateWinner(name: string): void {
-    const winner = this.winners.find((item) => {
-      return item.name === name;
-    });
-
+    const winner = this.winners.find((item) => item.name === name);
     if (winner) {
       winner.wins += 1;
     } else {
@@ -64,6 +58,15 @@ class Database {
 
   public getWinners(): { name: string; wins: number }[] {
     return this.winners;
+  }
+
+  public addNewGame(newGame: Game): boolean {
+    this.games.push(newGame);
+    return true;
+  }
+
+  public getGameById(gameId: string): Game | undefined {
+    return this.games.find((game) => game.gameId === gameId);
   }
 }
 

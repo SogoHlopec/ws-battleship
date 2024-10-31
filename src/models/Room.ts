@@ -23,8 +23,6 @@ class Room implements IRoom {
   }
 
   public isFullRoom(): boolean {
-    console.log(this.roomUsers);
-    console.log(this.getLengthRoomUsers());
     return this.getLengthRoomUsers() >= 2 ? true : false;
   }
 
