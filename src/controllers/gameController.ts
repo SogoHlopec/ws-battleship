@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import { randomUUID } from 'node:crypto';
 import { Player } from '../models/Player';
 import { Room } from '../models/Room';
-import { Game } from '../models/Game';
+import { Game, IShip } from '../models/Game';
 import { db } from '../db/database';
 
 function createGame(room: Room): void {
@@ -35,4 +35,32 @@ function createGame(room: Room): void {
   });
 }
 
-export { createGame };
+function addShipsToBoard(
+  gameId: string | number,
+  playerId: number | string,
+  ships: IShip[],
+): boolean {
+  const game = db.getGameById(gameId);
+
+  if (!game) {
+    console.log(`Game with ID ${gameId} not found.`);
+    return false;
+  }
+
+  const playerExists = game.players.some((item) => item.idPlayer === playerId);
+  if (!playerExists) {
+    console.log(
+      `Player with ID ${playerId} is not part of the game ${gameId}.`,
+    );
+    return false;
+  }
+
+  const result = game.addShips(playerId, ships);
+  if (result) {
+    console.log(
+      `Ships added for player with ID ${playerId} in game ${gameId}.`,
+    );
+  }
+  return true;
+}
+export { createGame, addShipsToBoard };

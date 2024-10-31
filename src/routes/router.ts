@@ -1,6 +1,5 @@
 import WebSocket from 'ws';
-import { IPlayer, Player } from '../models/Player';
-import { Room } from '../models/Room';
+import { Player } from '../models/Player';
 import {
   registerPlayer,
   sendUpdateWinners,
@@ -10,6 +9,7 @@ import {
   updateRoom,
   addUserToRoom,
 } from '../controllers/roomController';
+import { addShipsToBoard } from '../controllers/gameController';
 import { db } from '../db/database';
 
 function handleWebSocketMessage(
@@ -31,14 +31,15 @@ function handleWebSocketMessage(
       sendUpdateWinners();
       break;
     }
-    case 'create_room':
+    case 'create_room': {
       if (player) {
         createRoom(player);
         updateRoom();
       }
       break;
+    }
 
-    case 'add_user_to_room':
+    case 'add_user_to_room': {
       const data = JSON.parse(parseMessage.data);
       const indexRoom = data.indexRoom;
 
@@ -46,6 +47,14 @@ function handleWebSocketMessage(
         addUserToRoom(player, indexRoom);
       }
       break;
+    }
+
+    case 'add_ships': {
+      const data = JSON.parse(parseMessage.data);
+
+      addShipsToBoard(data.gameId, data.indexPlayer, data.ships);
+      break;
+    }
     default:
       console.log(`Unknown command: ${type}`);
       break;

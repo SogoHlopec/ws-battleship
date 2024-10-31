@@ -65,7 +65,7 @@ class Database {
     return true;
   }
 
-  public getGameById(gameId: string): Game | undefined {
+  public getGameById(gameId: number | string): Game | undefined {
     return this.games.find((game) => game.gameId === gameId);
   }
 }
