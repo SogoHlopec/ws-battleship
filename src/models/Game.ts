@@ -3,6 +3,8 @@ import { Player } from './Player';
 interface IGame {
   gameId: number | string;
   players: { idPlayer: number | string; player: Player }[];
+  ships: { [playerId: number | string]: IShip[] };
+  currentPlayerId: number | string;
 }
 
 interface IShip {
@@ -16,6 +18,7 @@ class Game implements IGame {
   gameId: number | string;
   players: { idPlayer: number | string; player: Player }[];
   ships: { [playerId: number | string]: IShip[] } = {};
+  currentPlayerId: number | string;
 
   constructor(
     gameId: number | string,
@@ -27,6 +30,7 @@ class Game implements IGame {
     players.forEach((item) => {
       this.ships[item.idPlayer] = [];
     });
+    this.currentPlayerId = '';
   }
 
   public addShips(playerId: number | string, ships: IShip[]): boolean {

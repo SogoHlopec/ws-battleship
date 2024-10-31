@@ -71,12 +71,14 @@ function startGame(gameId: number | string): boolean {
     console.log(`Game with ID ${gameId} not found.`);
     return false;
   }
-  
+
   const hasTwoPlayersAddedShips = Object.values(game.ships).every(
-  (ships) => Array.isArray(ships) && ships.length > 0
-);
+    (ships) => Array.isArray(ships) && ships.length > 0,
+  );
 
   if (game.players.length === 2 && hasTwoPlayersAddedShips) {
+    game.currentPlayerId = game.players[0].idPlayer;
+
     game.players.forEach((item) => {
       item.player.ws.send(
         JSON.stringify({
@@ -91,6 +93,7 @@ function startGame(gameId: number | string): boolean {
     });
 
     console.log(`Start game ${gameId}.`);
+    sendTurnInfo(game);
   } else {
     console.log(`Not all players have sent ships in the game ${gameId}.`);
     return false;
@@ -98,4 +101,20 @@ function startGame(gameId: number | string): boolean {
   return true;
 }
 
-export { createGame, addShipsToBoard, startGame };
+function sendTurnInfo(game: Game): void {
+  game.players.forEach((item) => {
+    item.player.ws.send(
+      JSON.stringify({
+        type: 'turn',
+        data: JSON.stringify({
+          currentPlayer: game.currentPlayerId,
+        }),
+        id: 0,
+      }),
+    );
+  });
+
+  console.log(`Turn player ${game.currentPlayerId}.`);
+}
+
+export { createGame, addShipsToBoard, startGame, sendTurnInfo };
