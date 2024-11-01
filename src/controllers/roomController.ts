@@ -25,7 +25,7 @@ function updateRoom(): void {
 
   const players: Player[] = db.getAllPlayers();
   players.forEach((player) => {
-    player.ws.send(
+    player.ws?.send(
       JSON.stringify({
         type: 'update_room',
         data: JSON.stringify(result),
@@ -39,7 +39,7 @@ function updateRoom(): void {
 function addUserToRoom(
   player: Player,
   roomId: number | string,
-): boolean | void {
+): boolean | void | string{
   const room = db.getRoomByIndex(roomId);
 
   if (!room) {
@@ -60,12 +60,13 @@ function addUserToRoom(
   room.roomUsers.push(player);
   console.log(`Player ${player.name} added to room ${roomId}`);
 
+  let gameId = '';
   if (room.roomUsers.length === 2) {
     updateRoom();
-    createGame(room);
+    gameId = createGame(room);
   }
 
-  return true;
+  return gameId;
 }
 
 export { createRoom, updateRoom, addUserToRoom };

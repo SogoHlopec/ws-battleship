@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { IPlayer, Player } from '../models/Player';
+import { Player } from '../models/Player';
 import { db } from '../db/database';
 
 function registerPlayer(
@@ -13,7 +13,7 @@ function registerPlayer(
     console.log(`Player ${name} already exists.`);
   }
 
-  const newPlayer = new Player(clientId, ws, name, password);
+  const newPlayer = new Player(clientId, name, password, ws);
   db.addNewPlayer(newPlayer);
   console.log(`Player ${name} registered with ID: ${newPlayer.index}`);
   if (newPlayer) {
@@ -50,7 +50,7 @@ function sendUpdateWinners(): void {
   const players: Player[] = db.getAllPlayers();
 
   players.forEach((player) => {
-    player.ws.send(
+    player.ws?.send(
       JSON.stringify({
         type: 'update_winners',
         data: JSON.stringify(winners),

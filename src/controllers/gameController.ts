@@ -4,8 +4,9 @@ import { Room } from '../models/Room';
 import { Game, IShip } from '../models/Game';
 import { sendUpdateWinners } from './playerController';
 import { db } from '../db/database';
+import { addUserToRoom, createRoom } from './roomController';
 
-function createGame(room: Room): void {
+function createGame(room: Room): string {
   const gameId = randomUUID();
 
   const playersWithIds: { idPlayer: number | string; player: Player }[] = [];
@@ -21,7 +22,7 @@ function createGame(room: Room): void {
   db.addNewGame(newGame);
 
   playersWithIds.forEach(({ idPlayer, player }) => {
-    player.ws.send(
+    player.ws?.send(
       JSON.stringify({
         type: 'create_game',
         data: JSON.stringify({
@@ -33,6 +34,8 @@ function createGame(room: Room): void {
     );
     console.log(`Game created with ID ${gameId} for player ${player.name}`);
   });
+
+  return gameId;
 }
 
 function addShipsToBoard(
@@ -48,6 +51,8 @@ function addShipsToBoard(
   }
 
   const playerExists = game.players.some((item) => item.idPlayer === playerId);
+  console.log(game);
+
   if (!playerExists) {
     console.log(
       `Player with ID ${playerId} is not part of the game ${gameId}.`,
@@ -80,7 +85,7 @@ function startGame(gameId: number | string): boolean {
     game.currentPlayerId = game.players[0].idPlayer;
 
     game.players.forEach((item) => {
-      item.player.ws.send(
+      item.player.ws?.send(
         JSON.stringify({
           type: 'start_game',
           data: JSON.stringify({
@@ -103,7 +108,7 @@ function startGame(gameId: number | string): boolean {
 
 function sendTurnInfo(game: Game): void {
   game.players.forEach((item) => {
-    item.player.ws.send(
+    item.player.ws?.send(
       JSON.stringify({
         type: 'turn',
         data: JSON.stringify({
@@ -165,7 +170,7 @@ function handleAttack(
   gameId: number | string,
   x: number,
   y: number,
-  attackingPlayerId: string,
+  attackingPlayerId: number | string,
 ): void {
   const game = db.getGameById(gameId);
 
@@ -220,7 +225,7 @@ function handleAttack(
 
         game.players.forEach((item) => {
           shipHit.cells.forEach((cell) => {
-            item.player.ws.send(
+            item.player.ws?.send(
               JSON.stringify({
                 type: 'attack',
                 data: JSON.stringify({
@@ -236,7 +241,7 @@ function handleAttack(
 
         surroundingCells.forEach((item) => {
           game.players.forEach((itemPlayer) => {
-            itemPlayer.player.ws.send(
+            itemPlayer.player.ws?.send(
               JSON.stringify({
                 type: 'attack',
                 data: JSON.stringify({
@@ -255,7 +260,7 @@ function handleAttack(
   game.boards[attackingPlayerId][x][y].status = 'miss';
 
   game.players.forEach(({ player }) => {
-    player.ws.send(
+    player.ws?.send(
       JSON.stringify({
         type: 'attack',
         data: JSON.stringify({
@@ -324,7 +329,7 @@ function finishGame(
   }
 
   game.players.forEach((item) => {
-    item.player.ws.send(
+    item.player.ws?.send(
       JSON.stringify({
         type: 'finish',
         data: JSON.stringify({
@@ -348,6 +353,160 @@ function finishGame(
   }
 }
 
+function handleSinglePlay(): void {
+  const botId = `bot_${randomUUID()}`;
+  const bot = new Player(botId, 'Bot', 'qwerty');
+  const botShips: IShip[] = [
+    {
+      position: { x: 5, y: 9 },
+      cells: [],
+      direction: false,
+      type: 'huge',
+      length: 4,
+    },
+    {
+      position: { x: 0, y: 6 },
+      cells: [],
+      direction: true,
+      type: 'large',
+      length: 3,
+    },
+    {
+      position: { x: 2, y: 1 },
+      cells: [],
+      direction: true,
+      type: 'large',
+      length: 3,
+    },
+    {
+      position: { x: 2, y: 7 },
+      cells: [],
+      direction: false,
+      type: 'medium',
+      length: 2,
+    },
+    {
+      position: { x: 6, y: 2 },
+      cells: [],
+      direction: true,
+      type: 'medium',
+      length: 2,
+    },
+    {
+      position: { x: 4, y: 3 },
+      cells: [],
+      direction: true,
+      type: 'medium',
+      length: 2,
+    },
+    {
+      position: { x: 2, y: 9 },
+      cells: [],
+      direction: false,
+      type: 'small',
+      length: 1,
+    },
+    {
+      position: { x: 0, y: 4 },
+      cells: [],
+      direction: false,
+      type: 'small',
+      length: 1,
+    },
+    {
+      position: { x: 5, y: 0 },
+      cells: [],
+      direction: true,
+      type: 'small',
+      length: 1,
+    },
+    {
+      position: { x: 0, y: 2 },
+      cells: [],
+      direction: false,
+      type: 'small',
+      length: 1,
+    },
+  ];
+
+  const player = db.getAllPlayers()[0];
+  if (!player) {
+    console.log(`There are no players`);
+    return;
+  }
+  const room = createRoom(player);
+  const gameId = String(addUserToRoom(bot, room.roomId));
+  console.log(gameId);
+
+  if (!gameId) {
+    console.log(`There's no game`);
+    return;
+  }
+
+  const game = db.getGameById(gameId);
+  if (!game) {
+    console.log(`Game creation failed for single play.`);
+    return;
+  }
+
+  console.log(`Game ${gameId} created for single play with bot ${botId}.`);
+
+  const botGameId = game.getPlayerGameId(bot);
+  const playerGameId = game.getPlayerGameId(player);
+
+  if (botGameId) {
+    addShipsToBoard(gameId, botGameId, botShips);
+    startGame(gameId);
+    botRandomAttack();
+  }
+
+  function botRandomAttack() {
+    const x = randomInt(10);
+    const y = randomInt(10);
+
+    console.log(`Bot attacking at (${x}, ${y})`);
+
+    if (botGameId && game) {
+      handleAttack(gameId, x, y, botGameId);
+      handleAttackWithBotCheck(gameId, botGameId);
+      switchTurn(botGameId, game);
+    }
+  }
+
+  function handleAttackWithBotCheck(
+    gameId: number | string,
+    playerId: number | string,
+  ): void {
+    const game = db.getGameById(gameId);
+    if (!game) {
+      console.log(`Game failed for single play.`);
+      return;
+    }
+
+    const playerShips = game.ships[playerId];
+    if (!playerShips) {
+      console.log(`No ships found for player ${playerId}`);
+      return;
+    }
+
+    const isFinish = game.ships[playerId].every((ship) =>
+      ship.cells.every((cell) => cell.isHit),
+    );
+
+    if (!isFinish && game.currentPlayerId === botGameId) {
+      setTimeout(botRandomAttack, 1000);
+    } else {
+      console.log(`Bot's turn finished or all ships are sunk.`);
+    }
+  }
+
+  if (playerGameId) {
+    setInterval(() => {
+      handleAttackWithBotCheck(gameId, playerGameId);
+    }, 1000);
+  }
+}
+
 export {
   createGame,
   addShipsToBoard,
@@ -355,4 +514,5 @@ export {
   sendTurnInfo,
   handleAttack,
   randomAttack,
+  handleSinglePlay,
 };

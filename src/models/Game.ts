@@ -81,8 +81,17 @@ class Game implements IGame {
       }
     });
     this.ships[playerId] = ships;
-    console.log(ships);
     return true;
+  }
+
+  public getPlayerGameId(player: Player): number | string | null {
+    const foundPlayer = this.players.find(
+      (item) => item.player.index === player.index,
+    );
+    if (foundPlayer) {
+      return foundPlayer.idPlayer;
+    }
+    return null;
   }
 }
 

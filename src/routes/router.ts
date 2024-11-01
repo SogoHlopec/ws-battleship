@@ -14,6 +14,7 @@ import {
   startGame,
   handleAttack,
   randomAttack,
+  handleSinglePlay,
 } from '../controllers/gameController';
 import { db } from '../db/database';
 
@@ -71,6 +72,10 @@ function handleWebSocketMessage(
       const data = JSON.parse(parseMessage.data);
 
       randomAttack(data.gameId, data.indexPlayer);
+      break;
+    }
+    case 'single_play': {
+      handleSinglePlay();
       break;
     }
     default:

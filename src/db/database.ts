@@ -22,7 +22,7 @@ class Database {
     }
   }
 
-  public getPlayerByIndex(index: string): IPlayer | undefined {
+  public getPlayerByIndex(index: number | string): IPlayer | undefined {
     return this.players.find((item) => item.index === index);
   }
 
