@@ -117,4 +117,151 @@ function sendTurnInfo(game: Game): void {
   console.log(`Turn player ${game.currentPlayerId}.`);
 }
 
-export { createGame, addShipsToBoard, startGame, sendTurnInfo };
+function switchTurn(attackingPlayerId: number | string, game: Game): void {
+  game.players.forEach((item) => {
+    if (attackingPlayerId === game.currentPlayerId) {
+      game.currentPlayerId = item.idPlayer;
+    }
+  });
+  sendTurnInfo(game);
+}
+
+function markSurroundingCellsAsMiss(
+  game: Game,
+  ship: IShip,
+): { x: number; y: number; status: string }[] {
+  const result: { x: number; y: number; status: string }[] = [];
+  ship.cells.forEach((item) => {
+    const x = item.x;
+    const y = item.y;
+
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (
+          nx >= 0 &&
+          nx < 10 &&
+          ny >= 0 &&
+          ny < 10 &&
+          game.board[nx][ny].status === 'unknown'
+        ) {
+          game.board[nx][ny].status = 'miss';
+          result.push({ x: nx, y: ny, status: game.board[nx][ny].status });
+        }
+      }
+    }
+  });
+
+  return result;
+}
+
+function handleAttack(
+  gameId: number | string,
+  x: number,
+  y: number,
+  attackingPlayerId: string,
+): void {
+  const game = db.getGameById(gameId);
+
+  if (!game) {
+    console.log(`Game with ID ${gameId} not found.`);
+    return;
+  }
+
+  if (attackingPlayerId !== game.currentPlayerId) {
+    console.log(`Another player's turn.`);
+    return;
+  }
+
+  if (game.board[x][y].status !== 'unknown') {
+    console.log(`They've already shot this cell ${x}-${y}.`);
+    return;
+  }
+
+  const enemy = game.players.find(
+    (item) => item.idPlayer !== attackingPlayerId,
+  );
+  if (!enemy) {
+    console.log(`Enemy player not found for game ID ${gameId}.`);
+    return;
+  }
+
+  const shipHit = game.ships[enemy.idPlayer].find((ship) =>
+    ship.cells.some((cell) => cell.x === x && cell.y === y),
+  );
+
+  let status: 'miss' | 'shot' | 'killed' = 'miss';
+
+  if (shipHit) {
+    const cellHit = shipHit.cells.find((cell) => cell.x === x && cell.y === y);
+    if (cellHit) {
+      cellHit.isHit = true;
+      game.board[x][y].status = 'shot';
+      status = 'shot';
+
+      const isShipKilled = shipHit.cells.every((cell) => cell.isHit);
+      if (isShipKilled) {
+        status = 'killed';
+        shipHit.cells.forEach((cell) => {
+          game.board[cell.x][cell.y].status = 'killed';
+        });
+
+        const surroundingCells = markSurroundingCellsAsMiss(game, shipHit);
+
+        game.players.forEach((item) => {
+          shipHit.cells.forEach((cell) => {
+            item.player.ws.send(
+              JSON.stringify({
+                type: 'attack',
+                data: JSON.stringify({
+                  position: { x: cell.x, y: cell.y },
+                  currentPlayer: attackingPlayerId,
+                  status: 'killed',
+                }),
+                id: 0,
+              }),
+            );
+          });
+        });
+
+        surroundingCells.forEach((item) => {
+          game.players.forEach((itemPlayer) => {
+            itemPlayer.player.ws.send(
+              JSON.stringify({
+                type: 'attack',
+                data: JSON.stringify({
+                  position: { x: item.x, y: item.y },
+                  currentPlayer: attackingPlayerId,
+                  status: item.status,
+                }),
+                id: 0,
+              }),
+            );
+          });
+        });
+      }
+    }
+  }
+  game.board[x][y].status = 'miss';
+
+  game.players.forEach(({ player }) => {
+    player.ws.send(
+      JSON.stringify({
+        type: 'attack',
+        data: JSON.stringify({
+          position: { x: x, y: y },
+          currentPlayer: attackingPlayerId,
+          status: status,
+        }),
+        id: 0,
+      }),
+    );
+  });
+
+  if (status !== 'shot' && status !== 'killed') {
+    switchTurn(attackingPlayerId, game);
+  }
+}
+
+export { createGame, addShipsToBoard, startGame, sendTurnInfo, handleAttack };

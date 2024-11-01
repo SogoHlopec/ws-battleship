@@ -9,7 +9,11 @@ import {
   updateRoom,
   addUserToRoom,
 } from '../controllers/roomController';
-import { addShipsToBoard, startGame } from '../controllers/gameController';
+import {
+  addShipsToBoard,
+  startGame,
+  handleAttack,
+} from '../controllers/gameController';
 import { db } from '../db/database';
 
 function handleWebSocketMessage(
@@ -54,6 +58,12 @@ function handleWebSocketMessage(
 
       addShipsToBoard(data.gameId, data.indexPlayer, data.ships);
       startGame(data.gameId);
+      break;
+    }
+    case 'attack': {
+      const data = JSON.parse(parseMessage.data);
+
+      handleAttack(data.gameId, data.x, data.y, data.indexPlayer);
       break;
     }
     default:
