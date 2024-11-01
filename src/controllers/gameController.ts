@@ -468,8 +468,6 @@ function handleSinglePlay(): void {
 
     if (botGameId && game) {
       handleAttack(gameId, x, y, botGameId);
-      handleAttackWithBotCheck(gameId, botGameId);
-      switchTurn(botGameId, game);
     }
   }
 
@@ -495,8 +493,6 @@ function handleSinglePlay(): void {
 
     if (!isFinish && game.currentPlayerId === botGameId) {
       setTimeout(botRandomAttack, 1000);
-    } else {
-      console.log(`Bot's turn finished or all ships are sunk.`);
     }
   }
 
