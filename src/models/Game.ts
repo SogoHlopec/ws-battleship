@@ -5,10 +5,12 @@ interface IGame {
   players: { idPlayer: number | string; player: Player }[];
   ships: { [playerId: number | string]: IShip[] };
   currentPlayerId: number | string;
-  board: {
-    position: { x: number; y: number };
-    status: 'unknown' | 'miss' | 'shot' | 'killed';
-  }[][];
+  boards: {
+    [playerId: number | string]: {
+      position: { x: number; y: number };
+      status: 'unknown' | 'miss' | 'shot' | 'killed';
+    }[][];
+  };
 }
 
 interface IShip {
@@ -24,19 +26,23 @@ class Game implements IGame {
   players: { idPlayer: number | string; player: Player }[];
   ships: { [playerId: number | string]: IShip[] } = {};
   currentPlayerId: number | string;
-  board: {
-    position: { x: number; y: number };
-    status: 'unknown' | 'miss' | 'shot' | 'killed';
-  }[][] = [];
+  boards: {
+    [playerId: number | string]: {
+      position: { x: number; y: number };
+      status: 'unknown' | 'miss' | 'shot' | 'killed';
+    }[][];
+  } = {};
 
   constructor(
     gameId: number | string,
     players: { idPlayer: number | string; player: Player }[],
     ships: { [playerId: number | string]: IShip[] } = {},
-    board: {
-      position: { x: number; y: number };
-      status: 'unknown' | 'miss' | 'shot' | 'killed';
-    }[][] = [],
+    boards: {
+      [playerId: number | string]: {
+        position: { x: number; y: number };
+        status: 'unknown' | 'miss' | 'shot' | 'killed';
+      }[][];
+    } = {},
   ) {
     this.gameId = gameId;
     this.players = players;
@@ -44,14 +50,14 @@ class Game implements IGame {
 
     players.forEach((item) => {
       this.ships[item.idPlayer] = [];
-    });
 
-    this.board = Array.from({ length: 10 }, (_, x) =>
-      Array.from({ length: 10 }, (_, y) => ({
-        position: { x, y },
-        status: 'unknown',
-      })),
-    );
+      this.boards[item.idPlayer] = Array.from({ length: 10 }, (_, x) =>
+        Array.from({ length: 10 }, (_, y) => ({
+          position: { x, y },
+          status: 'unknown',
+        })),
+      );
+    });
   }
 
   public addShips(playerId: number | string, ships: IShip[]): boolean {

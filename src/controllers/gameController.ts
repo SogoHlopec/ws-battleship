@@ -1,8 +1,8 @@
-import WebSocket from 'ws';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 import { Player } from '../models/Player';
 import { Room } from '../models/Room';
 import { Game, IShip } from '../models/Game';
+import { sendUpdateWinners } from './playerController';
 import { db } from '../db/database';
 
 function createGame(room: Room): void {
@@ -129,6 +129,7 @@ function switchTurn(attackingPlayerId: number | string, game: Game): void {
 function markSurroundingCellsAsMiss(
   game: Game,
   ship: IShip,
+  attackingPlayerId: number | string,
 ): { x: number; y: number; status: string }[] {
   const result: { x: number; y: number; status: string }[] = [];
   ship.cells.forEach((item) => {
@@ -144,10 +145,14 @@ function markSurroundingCellsAsMiss(
           nx < 10 &&
           ny >= 0 &&
           ny < 10 &&
-          game.board[nx][ny].status === 'unknown'
+          game.boards[attackingPlayerId][nx][ny].status === 'unknown'
         ) {
-          game.board[nx][ny].status = 'miss';
-          result.push({ x: nx, y: ny, status: game.board[nx][ny].status });
+          game.boards[attackingPlayerId][nx][ny].status = 'miss';
+          result.push({
+            x: nx,
+            y: ny,
+            status: game.boards[attackingPlayerId][nx][ny].status,
+          });
         }
       }
     }
@@ -174,7 +179,7 @@ function handleAttack(
     return;
   }
 
-  if (game.board[x][y].status !== 'unknown') {
+  if (game.boards[attackingPlayerId][x][y].status !== 'unknown') {
     console.log(`They've already shot this cell ${x}-${y}.`);
     return;
   }
@@ -197,17 +202,21 @@ function handleAttack(
     const cellHit = shipHit.cells.find((cell) => cell.x === x && cell.y === y);
     if (cellHit) {
       cellHit.isHit = true;
-      game.board[x][y].status = 'shot';
+      game.boards[attackingPlayerId][x][y].status = 'shot';
       status = 'shot';
 
       const isShipKilled = shipHit.cells.every((cell) => cell.isHit);
       if (isShipKilled) {
         status = 'killed';
         shipHit.cells.forEach((cell) => {
-          game.board[cell.x][cell.y].status = 'killed';
+          game.boards[attackingPlayerId][cell.x][cell.y].status = 'killed';
         });
 
-        const surroundingCells = markSurroundingCellsAsMiss(game, shipHit);
+        const surroundingCells = markSurroundingCellsAsMiss(
+          game,
+          shipHit,
+          attackingPlayerId,
+        );
 
         game.players.forEach((item) => {
           shipHit.cells.forEach((cell) => {
@@ -243,7 +252,7 @@ function handleAttack(
       }
     }
   }
-  game.board[x][y].status = 'miss';
+  game.boards[attackingPlayerId][x][y].status = 'miss';
 
   game.players.forEach(({ player }) => {
     player.ws.send(
@@ -259,9 +268,91 @@ function handleAttack(
     );
   });
 
+  console.log(`Player ${attackingPlayerId} attacked ${x}-${y}`);
+
+  if (
+    game.ships[enemy.idPlayer].every((ship) =>
+      ship.cells.every((cell) => cell.isHit),
+    )
+  ) {
+    finishGame(gameId, attackingPlayerId);
+  }
+
   if (status !== 'shot' && status !== 'killed') {
     switchTurn(attackingPlayerId, game);
   }
 }
 
-export { createGame, addShipsToBoard, startGame, sendTurnInfo, handleAttack };
+function randomAttack(
+  gameId: number | string,
+  attackingPlayerId: string,
+): void {
+  const game = db.getGameById(gameId);
+
+  if (!game) {
+    console.log(`Game with ID ${gameId} not found.`);
+    return;
+  }
+
+  const availableCells = game.boards[attackingPlayerId]
+    .flat()
+    .filter((cell) => cell.status === 'unknown');
+
+  if (availableCells.length === 0) {
+    console.log(`No more cells available to attack in game ${gameId}.`);
+    return;
+  }
+
+  const randomCell = availableCells[randomInt(availableCells.length)];
+  const x = randomCell.position.x;
+  const y = randomCell.position.y;
+
+  console.log(`Player ${attackingPlayerId} random attacked ${x}-${y}`);
+
+  handleAttack(gameId, x, y, attackingPlayerId);
+}
+
+function finishGame(
+  gameId: number | string,
+  winningPlayerId: number | string,
+): void {
+  const game = db.getGameById(gameId);
+
+  if (!game) {
+    console.log(`Game with ID ${gameId} not found.`);
+    return;
+  }
+
+  game.players.forEach((item) => {
+    item.player.ws.send(
+      JSON.stringify({
+        type: 'finish',
+        data: JSON.stringify({
+          winPlayer: winningPlayerId,
+        }),
+        id: 0,
+      }),
+    );
+  });
+
+  console.log(
+    `Game ${gameId} finished. Player ${winningPlayerId} is the winner.`,
+  );
+
+  const winnerPlayer = game.players.find(
+    (item) => item.idPlayer === winningPlayerId,
+  );
+  if (winnerPlayer) {
+    db.updateWinner(winnerPlayer.player.name);
+    sendUpdateWinners();
+  }
+}
+
+export {
+  createGame,
+  addShipsToBoard,
+  startGame,
+  sendTurnInfo,
+  handleAttack,
+  randomAttack,
+};

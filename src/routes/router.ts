@@ -13,6 +13,7 @@ import {
   addShipsToBoard,
   startGame,
   handleAttack,
+  randomAttack,
 } from '../controllers/gameController';
 import { db } from '../db/database';
 
@@ -64,6 +65,12 @@ function handleWebSocketMessage(
       const data = JSON.parse(parseMessage.data);
 
       handleAttack(data.gameId, data.x, data.y, data.indexPlayer);
+      break;
+    }
+    case 'randomAttack': {
+      const data = JSON.parse(parseMessage.data);
+
+      randomAttack(data.gameId, data.indexPlayer);
       break;
     }
     default:
